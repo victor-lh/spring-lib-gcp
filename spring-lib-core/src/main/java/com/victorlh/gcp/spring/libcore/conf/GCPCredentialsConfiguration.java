@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.validation.BindException;
 
 import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
@@ -32,7 +33,7 @@ public class GCPCredentialsConfiguration {
 			inputStream = getFileIS();
 		}
 		if (inputStream == null) {
-			return null;
+			throw new IllegalStateException("[gcp.credentials.filePath] or [gcp.credentials.json] are required");
 		}
 
 		try {
@@ -61,6 +62,9 @@ public class GCPCredentialsConfiguration {
 
 	private InputStream getFileIS() {
 		String filePath = properties.getFilePath();
+		if (filePath == null || filePath.trim().equals("")) {
+			return null;
+		}
 		try {
 			return new FileInputStream(filePath);
 		} catch (FileNotFoundException e) {

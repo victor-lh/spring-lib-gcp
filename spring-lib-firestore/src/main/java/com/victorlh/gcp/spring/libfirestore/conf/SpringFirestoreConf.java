@@ -3,12 +3,17 @@ package com.victorlh.gcp.spring.libfirestore.conf;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.FirestoreOptions;
+import com.victorlh.gcp.spring.libcore.conf.GCPCredentialsConfiguration;
 import com.victorlh.gcp.spring.libcore.conf.GCPCredentialsProperties;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 
 @Configuration
+@EnableConfigurationProperties(GCPCredentialsProperties.class)
+@Import(GCPCredentialsConfiguration.class)
 public class SpringFirestoreConf {
 
 	private final GCPCredentialsProperties gcpCredentialsProperties;
