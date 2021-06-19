@@ -5,21 +5,22 @@ import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.DocumentReference;
 import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
+import com.google.cloud.firestore.Query;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
 import com.google.cloud.firestore.QuerySnapshot;
 import com.google.cloud.firestore.WriteResult;
-import com.google.cloud.firestore.annotation.DocumentId;
+import com.victorlh.gcp.spring.libfirestore.errors.FirestoreError;
+import com.victorlh.gcp.spring.libfirestore.utils.UtilFirestore;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import javax.annotation.Nullable;
 import java.lang.reflect.ParameterizedType;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
@@ -34,102 +35,90 @@ public abstract class AbstractFirestoreRepository<T> {
 	@Autowired
 	protected AbstractFirestoreRepository(Firestore firestore) {
 		this.parameterizedType = getParameterizedType();
-		this.collectionName = getCollectionNameValue(this.parameterizedType);
+		this.collectionName = UtilFirestore.getCollectionNameValue(this.parameterizedType);
 		this.collectionReference = firestore.collection(this.collectionName);
 	}
 
-	public boolean save(T model) {
-		String documentId = getDocumentId(model);
+	/**
+	 * Guarda el documento y devuelve el id
+	 *
+	 * @param model - modelo del documento a guardar
+	 * @return Identificador del documento
+	 */
+	public String save(T model) {
+		String documentId = UtilFirestore.getDocumentId(model);
 		ApiFuture<WriteResult> resultApiFuture = collectionReference.document(documentId).set(model);
 		try {
 			log.info("{}-{} saved at{}", collectionName, documentId, resultApiFuture.get().getUpdateTime());
-			return true;
+			return documentId;
 		} catch (InterruptedException | ExecutionException e) {
-			log.error("Error saving {}={} {}", collectionName, documentId, e.getMessage());
+			String msg = String.format("Error saving %s=%s %s", collectionName, documentId, e.getMessage());
+			throw new FirestoreError(msg, e);
 		}
-		return false;
 	}
 
-	public boolean delete(T model) {
-		String documentId = getDocumentId(model);
+	public void delete(T model) {
+		String documentId = UtilFirestore.getDocumentId(model);
 		ApiFuture<WriteResult> resultApiFuture = collectionReference.document(documentId).delete();
 		try {
 			log.info("{}-{} saved at{}", collectionName, documentId, resultApiFuture.get().getUpdateTime());
-			return true;
 		} catch (InterruptedException | ExecutionException e) {
-			log.error("Error saving {}={} {}", collectionName, documentId, e.getMessage());
+			String msg = String.format("Error saving %s=%s %s", collectionName, documentId, e.getMessage());
+			throw new FirestoreError(msg, e);
 		}
-		return false;
 	}
 
 	public List<T> findAll() {
 		ApiFuture<QuerySnapshot> querySnapshotApiFuture = collectionReference.get();
-
-		try {
-			List<QueryDocumentSnapshot> queryDocumentSnapshots = querySnapshotApiFuture.get().getDocuments();
-
-			return queryDocumentSnapshots.stream()
-					.map(queryDocumentSnapshot -> queryDocumentSnapshot.toObject(parameterizedType))
-					.collect(Collectors.toList());
-
-		} catch (InterruptedException | ExecutionException e) {
-			log.error("Exception occurred while retrieving all document for {}", collectionName);
-		}
-		return Collections.<T>emptyList();
-
+		return extractQuery(querySnapshotApiFuture);
 	}
 
+	public List<T> findAll(CollectionPageRequest collectionPageRequest) {
+		String orderByName = getOrderByName();
+		return paginate(orderByName, collectionPageRequest, 20);
+	}
 
 	public Optional<T> findById(String documentId) {
 		DocumentReference documentReference = collectionReference.document(documentId);
 		ApiFuture<DocumentSnapshot> documentSnapshotApiFuture = documentReference.get();
-
-		try {
-			DocumentSnapshot documentSnapshot = documentSnapshotApiFuture.get();
-
-			if (documentSnapshot.exists()) {
-				return Optional.ofNullable(documentSnapshot.toObject(parameterizedType));
-			}
-
-		} catch (InterruptedException | ExecutionException e) {
-			log.error("Exception occurred retrieving: {} {}, {}", collectionName, documentId, e.getMessage());
-		}
-
-		return Optional.empty();
-
+		DocumentSnapshot documentSnapshot = resolveFuture(documentSnapshotApiFuture);
+		return Optional.ofNullable(toObject(documentSnapshot));
 	}
 
-	protected static String getDocumentId(Object t) {
-		Object key;
-		Class<?> clzz = t.getClass();
-		do {
-			key = getKeyFromFields(clzz, t);
-			clzz = clzz.getSuperclass();
-		} while (key == null && clzz != null);
+	protected List<T> paginate(@Nullable String orderBy, CollectionPageRequest collectionPageRequest, int defaultLimit) {
+		int limit = collectionPageRequest.getLimit() == null ? defaultLimit : collectionPageRequest.getLimit();
+		int offset = collectionPageRequest.getOffset() == null ? 0 : collectionPageRequest.getOffset();
 
-		if (key == null) {
-			return UUID.randomUUID().toString();
+		Query query;
+		if(orderBy != null) {
+			query = collectionReference.orderBy(orderBy).limit(limit);
+		} else {
+			query = collectionReference.limit(limit);
 		}
-		return String.valueOf(key);
+		ApiFuture<QuerySnapshot> querySnapshotApiFuture = query.offset(offset).get();
+		return extractQuery(querySnapshotApiFuture);
 	}
 
-	private static Object getKeyFromFields(Class<?> clazz, Object t) {
-		return Arrays.stream(clazz.getDeclaredFields())
-				.filter(field -> field.isAnnotationPresent(DocumentId.class))
-				.findFirst()
-				.map(field -> getValue(t, field))
-				.orElse(null);
+	protected List<T> extractQuery(ApiFuture<QuerySnapshot> querySnapshotApiFuture) {
+		QuerySnapshot queryDocumentSnapshots = resolveFuture(querySnapshotApiFuture);
+		if (queryDocumentSnapshots == null) {
+			return Collections.emptyList();
+		}
+		List<QueryDocumentSnapshot> documents = queryDocumentSnapshots.getDocuments();
+		return documents.stream()
+				.map(this::toObject)
+				.filter(Objects::nonNull)
+				.collect(Collectors.toList());
 	}
 
 	@Nullable
-	private static Object getValue(Object t, java.lang.reflect.Field field) {
-		field.setAccessible(true);
+	protected <Z> Z resolveFuture(ApiFuture<Z> future) {
 		try {
-			return field.get(t);
-		} catch (IllegalAccessException e) {
-			log.error("Error in getting documentId key", e);
+			return future.get();
+		} catch (InterruptedException | ExecutionException e) {
+			String msg = String.format("Error getting %s, %s", collectionName, e.getMessage());
+			throw new FirestoreError(msg, e);
 		}
-		return null;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -146,11 +135,16 @@ public abstract class AbstractFirestoreRepository<T> {
 		return this.parameterizedType;
 	}
 
-	private static String getCollectionNameValue(Class<?> tClass) {
-		if (!tClass.isAnnotationPresent(CollectionName.class)) {
-			throw new IllegalArgumentException("La etiqueta CollectionName no existe");
-		}
+	@Nullable
+	protected String getOrderByName() {
+		return UtilFirestore.getOrderByField(getType());
+	}
 
-		return tClass.getAnnotation(CollectionName.class).value();
+	@Nullable
+	protected T toObject(@Nullable DocumentSnapshot documentSnapshot) {
+		if (documentSnapshot != null && documentSnapshot.exists()) {
+			return documentSnapshot.toObject(getType());
+		}
+		return null;
 	}
 }

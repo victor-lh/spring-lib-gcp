@@ -13,8 +13,6 @@ import javax.validation.constraints.NotEmpty;
 @Validated
 public class GCPCredentialsProperties {
 
-	@NotEmpty
-	private String projectId;
 	private String filePath;
 	private String json;
 
