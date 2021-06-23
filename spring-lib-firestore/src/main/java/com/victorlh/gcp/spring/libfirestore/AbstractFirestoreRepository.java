@@ -10,12 +10,14 @@ import com.google.cloud.firestore.QueryDocumentSnapshot;
 import com.google.cloud.firestore.QuerySnapshot;
 import com.google.cloud.firestore.WriteResult;
 import com.victorlh.gcp.spring.libfirestore.errors.FirestoreError;
+import com.victorlh.gcp.spring.libfirestore.handlers.SaveDocumentHandler;
 import com.victorlh.gcp.spring.libfirestore.utils.UtilFirestore;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import javax.annotation.Nullable;
+import javax.validation.constraints.NotNull;
 import java.lang.reflect.ParameterizedType;
 import java.util.Collections;
 import java.util.List;
@@ -47,9 +49,17 @@ public abstract class AbstractFirestoreRepository<T> {
 	 */
 	public String save(T model) {
 		String documentId = UtilFirestore.getDocumentId(model);
-		ApiFuture<WriteResult> resultApiFuture = collectionReference.document(documentId).set(model);
+		DocumentReference document = collectionReference.document(documentId);
+
+		ApiFuture<DocumentSnapshot> documentSnapshotApiFuture = document.get();
+		DocumentSnapshot documentSnapshot = resolveFuture(documentSnapshotApiFuture);
+
+		new SaveDocumentHandler().handle(model, documentSnapshot);
+
+		ApiFuture<WriteResult> resultApiFuture = document.set(model);
 		try {
-			log.info("{}-{} saved at{}", collectionName, documentId, resultApiFuture.get().getUpdateTime());
+			WriteResult writeResult = resultApiFuture.get();
+			log.info("{}-{} saved at{}", collectionName, documentId, writeResult.getUpdateTime());
 			return documentId;
 		} catch (InterruptedException | ExecutionException e) {
 			String msg = String.format("Error saving %s=%s %s", collectionName, documentId, e.getMessage());
@@ -85,12 +95,25 @@ public abstract class AbstractFirestoreRepository<T> {
 		return Optional.ofNullable(toObject(documentSnapshot));
 	}
 
+	protected List<T> paginate(@NotNull Query query, @Nullable String orderBy, @NotNull  CollectionPageRequest collectionPageRequest, int defaultLimit) {
+		int limit = collectionPageRequest.getLimit() == null ? defaultLimit : collectionPageRequest.getLimit();
+		int offset = collectionPageRequest.getOffset() == null ? 0 : collectionPageRequest.getOffset();
+
+		if (orderBy != null) {
+			query = query.orderBy(orderBy).limit(limit);
+		} else {
+			query = query.limit(limit);
+		}
+		ApiFuture<QuerySnapshot> querySnapshotApiFuture = query.offset(offset).get();
+		return extractQuery(querySnapshotApiFuture);
+	}
+
 	protected List<T> paginate(@Nullable String orderBy, CollectionPageRequest collectionPageRequest, int defaultLimit) {
 		int limit = collectionPageRequest.getLimit() == null ? defaultLimit : collectionPageRequest.getLimit();
 		int offset = collectionPageRequest.getOffset() == null ? 0 : collectionPageRequest.getOffset();
 
 		Query query;
-		if(orderBy != null) {
+		if (orderBy != null) {
 			query = collectionReference.orderBy(orderBy).limit(limit);
 		} else {
 			query = collectionReference.limit(limit);
@@ -111,7 +134,6 @@ public abstract class AbstractFirestoreRepository<T> {
 				.collect(Collectors.toList());
 	}
 
-	@Nullable
 	protected <Z> Z resolveFuture(ApiFuture<Z> future) {
 		try {
 			return future.get();

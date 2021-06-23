@@ -1,8 +1,10 @@
 package com.victorlh.gcp.spring.libfirestore.utils;
 
 import com.google.cloud.firestore.annotation.DocumentId;
-import com.victorlh.gcp.spring.libfirestore.CollectionName;
-import com.victorlh.gcp.spring.libfirestore.OrderBy;
+import com.victorlh.gcp.spring.libfirestore.anotations.CollectionName;
+import com.victorlh.gcp.spring.libfirestore.anotations.CreateAt;
+import com.victorlh.gcp.spring.libfirestore.anotations.OrderBy;
+import com.victorlh.gcp.spring.libfirestore.anotations.UpdateAt;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
@@ -32,6 +34,23 @@ public class UtilFirestore {
 				.orElse(null);
 	}
 
+	@Nullable
+	public static Field getCreateAtField(Class<?> clazz) {
+		return Arrays.stream(clazz.getDeclaredFields())
+				.filter(field -> field.isAnnotationPresent(CreateAt.class))
+				.findFirst()
+				.orElse(null);
+	}
+
+	@Nullable
+	public static Field getUpdateAtField(Class<?> clazz) {
+		return Arrays.stream(clazz.getDeclaredFields())
+				.filter(field -> field.isAnnotationPresent(UpdateAt.class))
+				.findFirst()
+				.orElse(null);
+	}
+
+	@Nullable
 	public static Field getDocumentIdField(Class<?> clazz) {
 		return Arrays.stream(clazz.getDeclaredFields())
 				.filter(field -> field.isAnnotationPresent(DocumentId.class))

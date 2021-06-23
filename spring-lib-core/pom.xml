@@ -10,7 +10,6 @@
     </parent>
 
     <artifactId>spring-lib-core</artifactId>
-    <version>0.2.0-SNAPSHOT</version>
 
     <name>spring-lib-core</name>
     <description>Libreria core de adaptacion de gcp a spring</description>
