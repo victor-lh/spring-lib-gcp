@@ -62,10 +62,10 @@ public abstract class AbstractFirestoreRepository<T> {
 		ApiFuture<WriteResult> resultApiFuture = document.set(model);
 		try {
 			WriteResult writeResult = resultApiFuture.get();
-			log.info("{}-{} saved at{}", collectionName, documentId, writeResult.getUpdateTime());
+			log.info("{} saved at {}", document.getPath(), writeResult.getUpdateTime());
 			return documentId;
 		} catch (InterruptedException | ExecutionException e) {
-			String msg = String.format("Error saving %s=%s %s", collectionName, documentId, e.getMessage());
+			String msg = String.format("Error saving %s %s", document.getPath(), e.getMessage());
 			throw new FirestoreError(msg, e);
 		}
 	}
@@ -73,9 +73,22 @@ public abstract class AbstractFirestoreRepository<T> {
 	public void delete(T model, String... collectionPathVariables) {
 		CollectionReference collectionReference = getCollectionReference(collectionPathVariables);
 		String documentId = UtilFirestore.getDocumentId(model);
-		ApiFuture<WriteResult> resultApiFuture = collectionReference.document(documentId).delete();
+		DocumentReference documentReference = collectionReference.document(documentId);
+		ApiFuture<WriteResult> resultApiFuture = documentReference.delete();
 		try {
-			log.info("{}-{} saved at{}", collectionName, documentId, resultApiFuture.get().getUpdateTime());
+			log.info("{} deleted at{}", documentReference.getPath(), resultApiFuture.get().getUpdateTime());
+		} catch (InterruptedException | ExecutionException e) {
+			String msg = String.format("Error saving %s=%s %s", collectionReference, documentId, e.getMessage());
+			throw new FirestoreError(msg, e);
+		}
+	}
+
+	public void recursiveDelete(String documentId, String... collectionPathVariables) {
+		CollectionReference collectionReference = getCollectionReference(collectionPathVariables);
+		DocumentReference documentReference = collectionReference.document(documentId);
+		ApiFuture<Void> voidApiFuture = firestore.recursiveDelete(documentReference);
+		try {
+			log.info("{} recursive deleted at{}", documentReference.getPath(), voidApiFuture.get());
 		} catch (InterruptedException | ExecutionException e) {
 			String msg = String.format("Error saving %s=%s %s", collectionName, documentId, e.getMessage());
 			throw new FirestoreError(msg, e);
@@ -97,6 +110,12 @@ public abstract class AbstractFirestoreRepository<T> {
 	public Optional<T> findById(String documentId, String... collectionPathVariables) {
 		CollectionReference collectionReference = getCollectionReference(collectionPathVariables);
 		DocumentReference documentReference = collectionReference.document(documentId);
+		ApiFuture<DocumentSnapshot> documentSnapshotApiFuture = documentReference.get();
+		DocumentSnapshot documentSnapshot = resolveFuture(documentSnapshotApiFuture);
+		return Optional.ofNullable(toObject(documentSnapshot));
+	}
+
+	public Optional<T> findByReference(DocumentReference documentReference) {
 		ApiFuture<DocumentSnapshot> documentSnapshotApiFuture = documentReference.get();
 		DocumentSnapshot documentSnapshot = resolveFuture(documentSnapshotApiFuture);
 		return Optional.ofNullable(toObject(documentSnapshot));
