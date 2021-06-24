@@ -1,15 +1,22 @@
 package com.victorlh.gcp.spring.libfirestore.utils;
 
+import com.google.cloud.firestore.CollectionReference;
+import com.google.cloud.firestore.DocumentReference;
+import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.annotation.DocumentId;
 import com.victorlh.gcp.spring.libfirestore.anotations.CollectionName;
 import com.victorlh.gcp.spring.libfirestore.anotations.CreateAt;
 import com.victorlh.gcp.spring.libfirestore.anotations.OrderBy;
 import com.victorlh.gcp.spring.libfirestore.anotations.UpdateAt;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 
 import javax.annotation.Nullable;
 import java.lang.reflect.Field;
 import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Queue;
 import java.util.UUID;
 
 @Slf4j
@@ -84,5 +91,42 @@ public class UtilFirestore {
 			return UUID.randomUUID().toString();
 		}
 		return String.valueOf(key);
+	}
+
+	public static CollectionReference parseCollectionReference(Firestore firestore, String collectionPath, String... collectionPathValue) {
+		String[] pathSegments = StringUtils.split(collectionPath, "/");
+
+		List<String> listPathValue = Arrays.asList(collectionPathValue);
+		Queue<String> pathValueQueue = new LinkedList<>(listPathValue);
+
+		CollectionReference collectionReference = null;
+		DocumentReference document = null;
+		for (String pathSegment : pathSegments) {
+			if (StringUtils.startsWith(pathSegment, "{") && StringUtils.endsWith(pathSegment, "}")) {
+				if (collectionReference == null) {
+					throw new IllegalArgumentException("Formato de collectionPath invalido");
+				}
+				String poll = pathValueQueue.poll();
+				if (StringUtils.isBlank(poll)) {
+					throw new IllegalArgumentException("El numero de argumentos no es valido");
+				}
+
+				document = collectionReference.document(poll);
+				collectionReference = null;
+			} else {
+				if (document == null) {
+					collectionReference = firestore.collection(pathSegment);
+				} else {
+					collectionReference = document.collection(pathSegment);
+				}
+				document = null;
+			}
+		}
+
+		if (collectionReference == null) {
+			throw new IllegalArgumentException("Formato de collectionPath invalido");
+		}
+
+		return collectionReference;
 	}
 }

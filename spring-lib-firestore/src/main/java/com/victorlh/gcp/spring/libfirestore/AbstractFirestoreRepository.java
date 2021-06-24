@@ -30,15 +30,17 @@ import java.util.stream.Collectors;
 @Repository
 public abstract class AbstractFirestoreRepository<T> {
 
-	private final CollectionReference collectionReference;
-	private final String collectionName;
 	private final Class<T> parameterizedType;
+	private final String collectionName;
+	private final Firestore firestore;
 
 	@Autowired
+	@SuppressWarnings("unchecked")
 	protected AbstractFirestoreRepository(Firestore firestore) {
-		this.parameterizedType = getParameterizedType();
+		ParameterizedType type = (ParameterizedType) this.getClass().getGenericSuperclass();
+		this.parameterizedType = (Class<T>) type.getActualTypeArguments()[0];
 		this.collectionName = UtilFirestore.getCollectionNameValue(this.parameterizedType);
-		this.collectionReference = firestore.collection(this.collectionName);
+		this.firestore = firestore;
 	}
 
 	/**
@@ -47,7 +49,8 @@ public abstract class AbstractFirestoreRepository<T> {
 	 * @param model - modelo del documento a guardar
 	 * @return Identificador del documento
 	 */
-	public String save(T model) {
+	public String save(T model, String... collectionPathVariables) {
+		CollectionReference collectionReference = getCollectionReference(collectionPathVariables);
 		String documentId = UtilFirestore.getDocumentId(model);
 		DocumentReference document = collectionReference.document(documentId);
 
@@ -67,7 +70,8 @@ public abstract class AbstractFirestoreRepository<T> {
 		}
 	}
 
-	public void delete(T model) {
+	public void delete(T model, String... collectionPathVariables) {
+		CollectionReference collectionReference = getCollectionReference(collectionPathVariables);
 		String documentId = UtilFirestore.getDocumentId(model);
 		ApiFuture<WriteResult> resultApiFuture = collectionReference.document(documentId).delete();
 		try {
@@ -78,24 +82,27 @@ public abstract class AbstractFirestoreRepository<T> {
 		}
 	}
 
-	public List<T> findAll() {
+	public List<T> findAll(String... collectionPathVariables) {
+		CollectionReference collectionReference = getCollectionReference(collectionPathVariables);
 		ApiFuture<QuerySnapshot> querySnapshotApiFuture = collectionReference.get();
 		return extractQuery(querySnapshotApiFuture);
 	}
 
-	public List<T> findAll(CollectionPageRequest collectionPageRequest) {
+	public List<T> findAll(CollectionPageRequest collectionPageRequest, String... collectionPathVariables) {
+		CollectionReference collectionReference = getCollectionReference(collectionPathVariables);
 		String orderByName = getOrderByName();
-		return paginate(orderByName, collectionPageRequest, 20);
+		return paginate(collectionReference, orderByName, collectionPageRequest, 20);
 	}
 
-	public Optional<T> findById(String documentId) {
+	public Optional<T> findById(String documentId, String... collectionPathVariables) {
+		CollectionReference collectionReference = getCollectionReference(collectionPathVariables);
 		DocumentReference documentReference = collectionReference.document(documentId);
 		ApiFuture<DocumentSnapshot> documentSnapshotApiFuture = documentReference.get();
 		DocumentSnapshot documentSnapshot = resolveFuture(documentSnapshotApiFuture);
 		return Optional.ofNullable(toObject(documentSnapshot));
 	}
 
-	protected List<T> paginate(@NotNull Query query, @Nullable String orderBy, @NotNull  CollectionPageRequest collectionPageRequest, int defaultLimit) {
+	protected List<T> paginate(@NotNull Query query, @Nullable String orderBy, @NotNull CollectionPageRequest collectionPageRequest, int defaultLimit) {
 		int limit = collectionPageRequest.getLimit() == null ? defaultLimit : collectionPageRequest.getLimit();
 		int offset = collectionPageRequest.getOffset() == null ? 0 : collectionPageRequest.getOffset();
 
@@ -108,7 +115,7 @@ public abstract class AbstractFirestoreRepository<T> {
 		return extractQuery(querySnapshotApiFuture);
 	}
 
-	protected List<T> paginate(@Nullable String orderBy, CollectionPageRequest collectionPageRequest, int defaultLimit) {
+	protected List<T> paginate(CollectionReference collectionReference, @Nullable String orderBy, CollectionPageRequest collectionPageRequest, int defaultLimit) {
 		int limit = collectionPageRequest.getLimit() == null ? defaultLimit : collectionPageRequest.getLimit();
 		int offset = collectionPageRequest.getOffset() == null ? 0 : collectionPageRequest.getOffset();
 
@@ -143,14 +150,17 @@ public abstract class AbstractFirestoreRepository<T> {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
-	private Class<T> getParameterizedType() {
-		ParameterizedType type = (ParameterizedType) this.getClass().getGenericSuperclass();
-		return (Class<T>) type.getActualTypeArguments()[0];
+	protected CollectionReference getCollectionReference(String... collectionPathsValues) {
+		String collectionName = getCollectionName();
+		return UtilFirestore.parseCollectionReference(firestore, collectionName, collectionPathsValues);
 	}
 
-	protected CollectionReference getCollectionReference() {
-		return this.collectionReference;
+	public Firestore getFirestore() {
+		return firestore;
+	}
+
+	public String getCollectionName() {
+		return collectionName;
 	}
 
 	protected Class<T> getType() {
