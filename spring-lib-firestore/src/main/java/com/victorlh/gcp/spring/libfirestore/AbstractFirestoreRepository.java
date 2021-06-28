@@ -36,7 +36,7 @@ public abstract class AbstractFirestoreRepository<T> {
 
 	@Autowired
 	@SuppressWarnings("unchecked")
-	protected AbstractFirestoreRepository(Firestore firestore) {
+	public AbstractFirestoreRepository(Firestore firestore) {
 		ParameterizedType type = (ParameterizedType) this.getClass().getGenericSuperclass();
 		this.parameterizedType = (Class<T>) type.getActualTypeArguments()[0];
 		this.collectionName = UtilFirestore.getCollectionNameValue(this.parameterizedType);
@@ -121,7 +121,7 @@ public abstract class AbstractFirestoreRepository<T> {
 		return Optional.ofNullable(toObject(documentSnapshot));
 	}
 
-	protected List<T> paginate(@NotNull Query query, @Nullable String orderBy, @NotNull CollectionPageRequest collectionPageRequest, int defaultLimit) {
+	public List<T> paginate(@NotNull Query query, @Nullable String orderBy, @NotNull CollectionPageRequest collectionPageRequest, int defaultLimit) {
 		int limit = collectionPageRequest.getLimit() == null ? defaultLimit : collectionPageRequest.getLimit();
 		int offset = collectionPageRequest.getOffset() == null ? 0 : collectionPageRequest.getOffset();
 
@@ -134,7 +134,7 @@ public abstract class AbstractFirestoreRepository<T> {
 		return extractQuery(querySnapshotApiFuture);
 	}
 
-	protected List<T> paginate(CollectionReference collectionReference, @Nullable String orderBy, CollectionPageRequest collectionPageRequest, int defaultLimit) {
+	public List<T> paginate(CollectionReference collectionReference, @Nullable String orderBy, CollectionPageRequest collectionPageRequest, int defaultLimit) {
 		int limit = collectionPageRequest.getLimit() == null ? defaultLimit : collectionPageRequest.getLimit();
 		int offset = collectionPageRequest.getOffset() == null ? 0 : collectionPageRequest.getOffset();
 
@@ -148,7 +148,7 @@ public abstract class AbstractFirestoreRepository<T> {
 		return extractQuery(querySnapshotApiFuture);
 	}
 
-	protected List<T> extractQuery(ApiFuture<QuerySnapshot> querySnapshotApiFuture) {
+	public List<T> extractQuery(ApiFuture<QuerySnapshot> querySnapshotApiFuture) {
 		QuerySnapshot queryDocumentSnapshots = resolveFuture(querySnapshotApiFuture);
 		if (queryDocumentSnapshots == null) {
 			return Collections.emptyList();
@@ -160,7 +160,7 @@ public abstract class AbstractFirestoreRepository<T> {
 				.collect(Collectors.toList());
 	}
 
-	protected <Z> Z resolveFuture(ApiFuture<Z> future) {
+	public <Z> Z resolveFuture(ApiFuture<Z> future) {
 		try {
 			return future.get();
 		} catch (InterruptedException | ExecutionException e) {
@@ -169,7 +169,7 @@ public abstract class AbstractFirestoreRepository<T> {
 		}
 	}
 
-	protected CollectionReference getCollectionReference(String... collectionPathsValues) {
+	public CollectionReference getCollectionReference(String... collectionPathsValues) {
 		String collectionName = getCollectionName();
 		return UtilFirestore.parseCollectionReference(firestore, collectionName, collectionPathsValues);
 	}
@@ -182,17 +182,17 @@ public abstract class AbstractFirestoreRepository<T> {
 		return collectionName;
 	}
 
-	protected Class<T> getType() {
+	public Class<T> getType() {
 		return this.parameterizedType;
 	}
 
 	@Nullable
-	protected String getOrderByName() {
+	public String getOrderByName() {
 		return UtilFirestore.getOrderByField(getType());
 	}
 
 	@Nullable
-	protected T toObject(@Nullable DocumentSnapshot documentSnapshot) {
+	public T toObject(@Nullable DocumentSnapshot documentSnapshot) {
 		if (documentSnapshot != null && documentSnapshot.exists()) {
 			return documentSnapshot.toObject(getType());
 		}
