@@ -55,6 +55,11 @@
                 <artifactId>spring-lib-firestore</artifactId>
                 <version>0.3.1-SNAPSHOT</version>
             </dependency>
+            <dependency>
+                <groupId>com.victorlh.gcp.spring</groupId>
+                <artifactId>spring-lib-pubsub</artifactId>
+                <version>0.3.1-SNAPSHOT</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
