@@ -11,7 +11,7 @@
 
     <groupId>com.victorlh.gcp.spring</groupId>
     <artifactId>spring-lib-gcp</artifactId>
-    <version>0.3.1</version>
+    <version>0.3.2-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>spring-lib-gcp</name>
@@ -47,17 +47,17 @@
             <dependency>
                 <groupId>com.victorlh.gcp.spring</groupId>
                 <artifactId>spring-lib-core</artifactId>
-                <version>0.3.1</version>
+                <version>0.3.2-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>com.victorlh.gcp.spring</groupId>
                 <artifactId>spring-lib-firestore</artifactId>
-                <version>0.3.1</version>
+                <version>0.3.2-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>com.victorlh.gcp.spring</groupId>
                 <artifactId>spring-lib-pubsub</artifactId>
-                <version>0.3.1</version>
+                <version>0.3.2-SNAPSHOT</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -99,7 +99,7 @@
         <connection>scm:git:https://github.com/${git.repository}.git</connection>
         <developerConnection>scm:git:https://github.com/${git.repository}.git</developerConnection>
         <url>https://github.com/${git.repository}</url>
-        <tag>v0.3.1</tag>
+        <tag>HEAD</tag>
     </scm>
 
 </project>
