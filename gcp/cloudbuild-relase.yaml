@@ -1,12 +1,10 @@
 steps:
   - name: 'gcr.io/cloud-builders/git'
     entrypoint: 'git'
-    args:
-      - 'config --global user.email "gcp@victorlh.com"'
+    args: [ 'config', '--global', 'user.email', '"gcp@victorlh.com"' ]
   - name: 'gcr.io/cloud-builders/git'
     entrypoint: 'git'
-    args:
-      - 'config --global user.name "GCP"'
+    args: [ 'config', '--global', 'user.name', '"GCP"' ]
   - name: 'maven'
     entrypoint: 'mvn'
     args:
