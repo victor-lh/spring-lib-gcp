@@ -1,4 +1,10 @@
 steps:
+  - name: gcr.io/cloud-builders/git
+    args:
+      - 'config --global user.email "gcp@victorlh.com"'
+  - name: gcr.io/cloud-builders/git
+    args:
+      - 'config --global user.name "GCP"'
   - name: gcr.io/cloud-builders/mvn
     entrypoint: mvn
     args:
