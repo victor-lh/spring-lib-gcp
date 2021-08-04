@@ -1,0 +1,5 @@
+steps:
+  - name: maven:3-jdk-14
+    entrypoint: mvn
+    args:
+      - 'deploy'
