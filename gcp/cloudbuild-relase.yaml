@@ -1,5 +1,5 @@
 steps:
-  - name: maven:3-jdk-14
+  - name: gcr.io/cloud-builders/mvn
     entrypoint: mvn
     args:
       - 'build-helper:parse-version'
