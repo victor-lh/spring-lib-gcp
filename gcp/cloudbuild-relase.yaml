@@ -1,0 +1,6 @@
+steps:
+  - name: maven:3-jdk-14
+    entrypoint: mvn
+    args:
+      - 'build-helper:parse-version'
+      - 'release:branch'
