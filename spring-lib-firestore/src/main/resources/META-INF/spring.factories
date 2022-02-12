@@ -1,0 +1,2 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+com.victorlh.gcp.spring.libfirestore.conf.SpringFirestoreConf

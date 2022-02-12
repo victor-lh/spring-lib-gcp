@@ -2,13 +2,11 @@ package com.victorlh.gcp.spring.libfirestore.handlers;
 
 import com.google.cloud.firestore.DocumentSnapshot;
 import com.victorlh.gcp.spring.libfirestore.utils.UtilFirestore;
-
-import javax.validation.constraints.NotNull;
 import java.lang.reflect.Field;
 
 public class SaveDocumentHandler extends AbstractDocumentHandler {
 	@Override
-	public void handle(@NotNull Object model, @NotNull DocumentSnapshot documentSnapshot) {
+	public void handle(Object model, DocumentSnapshot documentSnapshot) {
 		Class<?> modelClass = model.getClass();
 		if (!documentSnapshot.exists()) {
 			Field createAtField = UtilFirestore.getCreateAtField(modelClass);
@@ -23,4 +21,7 @@ public class SaveDocumentHandler extends AbstractDocumentHandler {
 		}
 	}
 
+	public static void doHandle(Object model, DocumentSnapshot documentSnapshot) {
+		new SaveDocumentHandler().handle(model, documentSnapshot);
+	}
 }

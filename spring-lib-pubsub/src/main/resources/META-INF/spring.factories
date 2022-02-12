@@ -1,0 +1,3 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+com.victorlh.gcp.spring.libpubsub.conf.PubSubConfigurationSelector,\
+  com.victorlh.gcp.spring.libpubsub.publisher.PubSubPublisher

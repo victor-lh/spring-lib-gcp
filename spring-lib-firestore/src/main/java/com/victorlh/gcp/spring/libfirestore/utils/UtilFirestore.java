@@ -1,5 +1,7 @@
 package com.victorlh.gcp.spring.libfirestore.utils;
 
+import javax.annotation.Nullable;
+
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.DocumentReference;
 import com.google.cloud.firestore.Firestore;
@@ -8,16 +10,14 @@ import com.victorlh.gcp.spring.libfirestore.anotations.CollectionName;
 import com.victorlh.gcp.spring.libfirestore.anotations.CreateAt;
 import com.victorlh.gcp.spring.libfirestore.anotations.OrderBy;
 import com.victorlh.gcp.spring.libfirestore.anotations.UpdateAt;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
-
-import javax.annotation.Nullable;
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 
 @Slf4j
 public class UtilFirestore {
