@@ -9,19 +9,19 @@
         <version>0.4.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>spring-lib-firestore</artifactId>
+    <artifactId>spring-lib-core</artifactId>
 
-    <name>spring-lib-firestore</name>
-    <description>Demo project for Spring Boot</description>
+    <name>spring-lib-core</name>
+    <description>Libreria core de adaptacion de gcp a spring</description>
 
     <dependencies>
         <dependency>
-            <groupId>com.victorlh.gcp.spring</groupId>
-            <artifactId>spring-lib-core</artifactId>
+            <groupId>com.google.auth</groupId>
+            <artifactId>google-auth-library-oauth2-http</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.google.cloud</groupId>
-            <artifactId>google-cloud-firestore</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
     </dependencies>
 </project>

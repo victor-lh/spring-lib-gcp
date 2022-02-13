@@ -1,0 +1,2 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+com.victorlh.gcp.spring.libcore.conf.GCPCredentialsConfiguration

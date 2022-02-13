@@ -19,6 +19,7 @@
     <description>Libreria custom de GCP</description>
 
     <modules>
+        <module>spring-lib-core</module>
         <module>spring-lib-firestore</module>
         <module>spring-lib-pubsub</module>
     </modules>
@@ -36,6 +37,11 @@
                 <version>20.6.0</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.victorlh.gcp.spring</groupId>
+                <artifactId>spring-lib-core</artifactId>
+                <version>${version}</version>
             </dependency>
             <dependency>
                 <groupId>com.victorlh.gcp.spring</groupId>

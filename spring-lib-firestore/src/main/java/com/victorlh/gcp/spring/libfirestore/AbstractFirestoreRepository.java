@@ -52,6 +52,7 @@ public abstract class AbstractFirestoreRepository<T> {
 		DocumentReference document = collectionReference.document(documentId);
 
 		return futureToMono(document::get)
+				.doOnNext(documentSnapshot -> log.trace("Save operation Get document. [Id: {}] [Exists: {}]", documentId, documentSnapshot.exists()))
 				.doOnNext(documentSnapshot -> SaveDocumentHandler.doHandle(model, documentSnapshot))
 				.flatMap(documentSnapshot -> futureToMono(() -> document.set(model)))
 				.doOnNext(writeResult -> log.info("{} saved at {}", document.getPath(), writeResult.getUpdateTime()))
