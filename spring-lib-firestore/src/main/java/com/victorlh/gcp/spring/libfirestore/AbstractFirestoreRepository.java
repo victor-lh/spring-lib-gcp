@@ -34,7 +34,7 @@ public abstract class AbstractFirestoreRepository<T> {
 	@Autowired
 	@SuppressWarnings("unchecked")
 	protected AbstractFirestoreRepository(Firestore firestore) {
-		ParameterizedType type = (ParameterizedType) this.getClass().getGenericSuperclass();
+		final ParameterizedType type = (ParameterizedType) this.getClass().getGenericSuperclass();
 		this.parameterizedType = (Class<T>) type.getActualTypeArguments()[0];
 		this.collectionName = UtilFirestore.getCollectionNameValue(this.parameterizedType);
 		this.firestore = firestore;
@@ -47,9 +47,9 @@ public abstract class AbstractFirestoreRepository<T> {
 	 * @return Identificador del documento
 	 */
 	public Mono<String> save(T model, String... collectionPathVariables) {
-		CollectionReference collectionReference = getCollectionReference(collectionPathVariables);
-		String documentId = UtilFirestore.getDocumentId(model);
-		DocumentReference document = collectionReference.document(documentId);
+		final CollectionReference collectionReference = getCollectionReference(collectionPathVariables);
+		final String documentId = UtilFirestore.getDocumentId(model);
+		final DocumentReference document = collectionReference.document(documentId);
 
 		return futureToMono(document::get)
 				.doOnNext(documentSnapshot -> log.trace("Save operation Get document. [Id: {}] [Exists: {}]", documentId, documentSnapshot.exists()))
@@ -60,36 +60,40 @@ public abstract class AbstractFirestoreRepository<T> {
 	}
 
 	public Mono<Void> delete(T model, String... collectionPathVariables) {
-		CollectionReference collectionReference = getCollectionReference(collectionPathVariables);
-		String documentId = UtilFirestore.getDocumentId(model);
-		DocumentReference documentReference = collectionReference.document(documentId);
+		final String documentId = UtilFirestore.getDocumentId(model);
+		return delete(documentId, collectionPathVariables);
+	}
+
+	public Mono<Void> delete(String documentId, String... collectionPathVariables) {
+		final CollectionReference collectionReference = getCollectionReference(collectionPathVariables);
+		final DocumentReference documentReference = collectionReference.document(documentId);
 		return futureToMono(documentReference::delete)
 				.doOnNext(writeResult -> log.info("{} deleted at {}", documentReference.getPath(), writeResult.getUpdateTime()))
 				.flatMap(writeResult -> Mono.empty());
 	}
 
 	public Mono<Void> recursiveDelete(String documentId, String... collectionPathVariables) {
-		CollectionReference collectionReference = getCollectionReference(collectionPathVariables);
-		DocumentReference documentReference = collectionReference.document(documentId);
+		final CollectionReference collectionReference = getCollectionReference(collectionPathVariables);
+		final DocumentReference documentReference = collectionReference.document(documentId);
 		return futureToMono(() -> firestore.recursiveDelete(documentReference))
 				.doOnNext(unused -> log.info("{} recursive deleted", documentReference.getPath()))
 				.flatMap(unused -> Mono.empty());
 	}
 
 	public Flux<T> findAll(String... collectionPathVariables) {
-		CollectionReference collectionReference = getCollectionReference(collectionPathVariables);
+		final CollectionReference collectionReference = getCollectionReference(collectionPathVariables);
 		return extractQuery(collectionReference::get);
 	}
 
 	public Flux<T> findAll(CollectionPageRequest collectionPageRequest, String... collectionPathVariables) {
-		CollectionReference collectionReference = getCollectionReference(collectionPathVariables);
-		String orderByName = getOrderByName();
+		final CollectionReference collectionReference = getCollectionReference(collectionPathVariables);
+		final String orderByName = getOrderByName();
 		return paginate(collectionReference, orderByName, collectionPageRequest, 20);
 	}
 
 	public Mono<T> findById(String documentId, String... collectionPathVariables) {
-		CollectionReference collectionReference = getCollectionReference(collectionPathVariables);
-		DocumentReference documentReference = collectionReference.document(documentId);
+		final CollectionReference collectionReference = getCollectionReference(collectionPathVariables);
+		final DocumentReference documentReference = collectionReference.document(documentId);
 		return futureToMono(documentReference::get)
 				.mapNotNull(this::toObject);
 	}
@@ -101,8 +105,8 @@ public abstract class AbstractFirestoreRepository<T> {
 
 	public Flux<T> paginate(final Query query, @Nullable String orderBy, CollectionPageRequest collectionPageRequest, int defaultLimit) {
 		return extractQuery(() -> {
-			int limit = collectionPageRequest.getLimit() == null ? defaultLimit : collectionPageRequest.getLimit();
-			int offset = collectionPageRequest.getOffset() == null ? 0 : collectionPageRequest.getOffset();
+			final int limit = collectionPageRequest.getLimit() == null ? defaultLimit : collectionPageRequest.getLimit();
+			final int offset = collectionPageRequest.getOffset() == null ? 0 : collectionPageRequest.getOffset();
 
 			Query internalQuery = query;
 			if (orderBy != null) {
@@ -116,10 +120,10 @@ public abstract class AbstractFirestoreRepository<T> {
 
 	public Flux<T> paginate(CollectionReference collectionReference, @Nullable String orderBy, CollectionPageRequest collectionPageRequest, int defaultLimit) {
 		return extractQuery(() -> {
-			int limit = collectionPageRequest.getLimit() == null ? defaultLimit : collectionPageRequest.getLimit();
-			int offset = collectionPageRequest.getOffset() == null ? 0 : collectionPageRequest.getOffset();
+			final int limit = collectionPageRequest.getLimit() == null ? defaultLimit : collectionPageRequest.getLimit();
+			final int offset = collectionPageRequest.getOffset() == null ? 0 : collectionPageRequest.getOffset();
 
-			Query query;
+			final Query query;
 			if (orderBy != null) {
 				query = collectionReference.orderBy(orderBy).limit(limit);
 			} else {
@@ -136,16 +140,16 @@ public abstract class AbstractFirestoreRepository<T> {
 	}
 
 	public <Z> Mono<Z> futureToMono(Supplier<ApiFuture<Z>> supplier) {
-		CompletableFuture<Z> completableFuture = CompletableFuture.supplyAsync(() -> {
+		final CompletableFuture<Z> completableFuture = CompletableFuture.supplyAsync(() -> {
 			try {
-				ApiFuture<Z> zApiFuture = supplier.get();
+				final ApiFuture<Z> zApiFuture = supplier.get();
 				return zApiFuture.get();
 			} catch (ExecutionException e) {
-				String msg = String.format("Firestore error %s, %s", collectionName, e.getMessage());
+				final String msg = String.format("Firestore error %s, %s", collectionName, e.getMessage());
 				throw new FirestoreError(msg, e);
 			} catch (InterruptedException e) {
 				Thread.currentThread().interrupt();
-				String msg = String.format("Firestore error %s, %s", collectionName, e.getMessage());
+				final String msg = String.format("Firestore error %s, %s", collectionName, e.getMessage());
 				throw new FirestoreError(msg, e);
 			}
 		});
